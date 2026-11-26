@@ -17,7 +17,7 @@ public class MessageServiceClient {
     private final RestTemplate http;
     private final String base;
     private final String token;
-    public MessageServiceClient(RestTemplateBuilder builder,@Value("${MESSAGE_SERVICE_URL:http://localhost:8084}") String base,
+    public MessageServiceClient(RestTemplateBuilder builder,@Value("${message.service-url:${MESSAGE_SERVICE_URL:http://localhost:8084}}") String base,
                                 @Value("${MESSAGE_INTERNAL_TOKEN:}") String token) {
         this.http=builder.setConnectTimeout(Duration.ofSeconds(2)).setReadTimeout(Duration.ofSeconds(5)).build();
         this.base=base.replaceAll("/+$",""); this.token=token;

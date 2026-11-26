@@ -1,76 +1,101 @@
 spring:
   application:
     name: gateway-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  main:
+    web-application-type: reactive
   cloud:
     nacos:
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:}
+      password: ${NACOS_PASSWORD:}
       config:
-        server-addr: http://localhost:8848 #nacos中心地址
-        file-extension: yaml # 配置文件格式
-        namespace: public
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
       discovery:
-        ip: 127.0.0.1
-        server-addr: 127.0.0.1:8848  # Nacos 服务器地址
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        ip: ${POD_IP:}
     gateway:
       discovery:
         locator:
-          enabled: true   # 启用服务发现自动路由
-          lower-case-service-id: true
+          enabled: false # 仅暴露明确声明的路由，避免自动暴露整个服务。
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin RETAIN_FIRST
       routes:
         - id: message-websocket
-          uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8084}
+          uri: ${bilimili.message-ws-url}
           predicates:
             - Path=/message/im
           filters:
             - StripPrefix=1
         - id: message-websocket-legacy
-          uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8084}
+          uri: ${bilimili.message-ws-url}
           predicates:
             - Path=/im
         - id: message-service
-          uri: ${MESSAGE_SERVICE_URL:http://localhost:8084}
+          uri: ${bilimili.message-url}
           predicates:
             - Path=/message/**
           filters:
             - StripPrefix=1
         - id: message-unread-legacy
-          uri: ${MESSAGE_SERVICE_URL:http://localhost:8084}
+          uri: ${bilimili.message-url}
           predicates:
             - Path=/user/msg-unread/**
           filters:
             - StripPrefix=1
-        - id: user-service
-          uri: lb://user-service  # 使用负载均衡的服务发现机制
+        - id: user-public-paths
+          uri: ${USER_SERVICE_URL:lb://user-service}
           predicates:
-            - Path=/user/**      # 匹配以 /users 开头的请求路径
+            - Path=/user/account/**,/user/personal/**,/user/password/**,/user/info/**,/user/avatar/**,/user/favorite/**,/user/following/**,/user/fans/**,/user/follow/**,/user/followed/**,/user/user_record,/user/video/**
+        - id: article-public-paths
+          uri: ${ARTICLE_SERVICE_URL:lb://article-service}
+          predicates:
+            - Path=/article/get,/article/change/**,/article/user-works,/article/add/**
+        - id: video-public-paths
+          uri: ${VIDEO_SERVICE_URL:lb://video-service}
+          predicates:
+            - Path=/video/change/**,/video/user-works-count,/video/user-love,/video/user-play
+        - id: user-service
+          uri: ${USER_SERVICE_URL:lb://user-service}
+          predicates:
+            - Path=/user/**
           filters:
-            - StripPrefix=1       # 移除路径前缀 /users
-
+            - StripPrefix=1
         - id: video-service
-          uri: lb://video-service
+          uri: ${VIDEO_SERVICE_URL:lb://video-service}
           predicates:
             - Path=/video/**
           filters:
             - StripPrefix=1
-
         - id: article-service
-          uri: lb://article-service
+          uri: ${ARTICLE_SERVICE_URL:lb://article-service}
           predicates:
             - Path=/article/**
           filters:
             - StripPrefix=1
-  profiles:
-    active: dev # 环境标识
-  config:
-    import:
-      - optional:nacos:${spring.application.name}-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-  main:
-    allow-bean-definition-overriding: true
-    web-application-type: reactive
-
+server:
+  port: ${SERVER_PORT:8080}
+gateway:
+  allowed-origins: ${GATEWAY_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8080,http://localhost:8091}
+bilimili:
+  message-url: ${MESSAGE_SERVICE_URL:http://localhost:8084}
+  message-ws-url: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8084}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG  # 调试级别日志输出
-
-
+    org.springframework.cloud.gateway: INFO

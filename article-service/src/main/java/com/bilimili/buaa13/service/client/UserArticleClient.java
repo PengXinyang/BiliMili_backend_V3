@@ -9,16 +9,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "userService", url = "http://userService:9090")
+@FeignClient(name = "user-service", url = "${USER_SERVICE_URL:}")
 public interface UserArticleClient {
     @GetMapping("/user/getUserByName/{account}")
     User getUserByName(@PathVariable("account") String account);
 
-    @GetMapping("/user/dto/{uid}")
+    @GetMapping("/user/{uid}")
     UserDTO getUserDTOById(@PathVariable("uid") Integer uid);
 
     @GetMapping("/user/{uid}")
-    User getUserById(@PathVariable("uid") Integer uid);
+    UserDTO getUserById(@PathVariable("uid") Integer uid);
 
     @PostMapping("/user/handle_comment")
     void handleComment(@RequestParam("uid") Integer uid,

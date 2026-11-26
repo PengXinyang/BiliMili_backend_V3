@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "videoService", url = "http://videoService:9090")
+@FeignClient(name = "video-service", url = "${VIDEO_SERVICE_URL:}")
 public interface VideoArticleClient {
     @GetMapping("/video/get")
     Video getVideo(@RequestParam("vid") Integer vid);

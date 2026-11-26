@@ -85,54 +85,14 @@ public class SecurityConfig {
         return http
                 // 基于 token，不需要 csrf
                 .csrf().disable()
+                .exceptionHandling().authenticationEntryPoint((request, response, exception) -> response.setStatus(401)).and()
                 // 基于 token，不需要 session
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 // 下面开始设置权限
                 .authorizeRequests(authorize -> authorize
                         // 请求放开接口
-                        .antMatchers("/druid/**","/favicon.ico",
-                                "/**",
-                                "/provider/test/**",
-                                "/provider/test",
-                                "/provider/sentinel/test",
-                                "/provider/sentinel/test/**",
-                                "/user/user/account/register",
-                                "/user/account/register",
-                                "/user/account/login",
-                                "/admin/account/login","/actuator/**",
-                                "/image/add",
-                                "/column/favoriteVideo",
-                                "/article/get",
-                                "/user/currentUser/getId",
-                                "/user/**",
-                                "/favorite/get-all/user",
-                                "/article/get/all",
-                                "/category/getall",
-                                "/video/random/visitor",
-                                "/video/cumulative/visitor",
-                                "/video/getone",
-                                "/ws/danmu/**",
-                                "/danmu-list/**",
-                                "/msg/chat/outline",
-                                "/video/play/visitor",
-                                "/favorite/get-all/visitor",
-                                "/search/**",
-                                "/post/add",
-                                "/post/get",
-                                "/comment/get",
-                                "/comment/reply/get-more",
-                                "/comment/get-up-like",
-                                "/user/info/get-one",
-                                "/video/user-works-count",
-                                "/video/user-works",
-                                "/video/user-love",
-                                "/video/user-collect",
-                                "/article/user-works",
-                                "/column/favoriteVideo",
-                                "/following/update",
-                                "/isFans",
-                                "/column/markdown"
-                        ).permitAll()
+                        .antMatchers(HttpMethod.POST, "/user/account/register", "/user/account/login", "/admin/account/login").permitAll()
+                        .antMatchers(HttpMethod.GET, "/user/info/get-one", "/favorite/get-all/visitor", "/post/get", "/isFans", "/user/following/get-all/user", "/user/fans/get-all/user").permitAll()
                         // 允许HTTP OPTIONS请求
                         .antMatchers(HttpMethod.OPTIONS).permitAll()
                         // 其他地址的访问均需验证权限

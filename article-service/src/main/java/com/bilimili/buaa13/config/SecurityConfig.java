@@ -1,6 +1,7 @@
 package com.bilimili.buaa13.config;
 
 import lombok.extern.slf4j.Slf4j;
+import com.bilimili.buaa13.config.filter.JwtAuthenticationTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,8 @@ import java.util.Objects;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    @Resource
+    private JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
 
     @Resource
     private UserDetailsService userDetailsService;
@@ -82,52 +85,20 @@ public class SecurityConfig {
         return http
                 // 基于 token，不需要 csrf
                 .csrf().disable()
+                .exceptionHandling().authenticationEntryPoint((request, response, exception) -> response.setStatus(401)).and()
                 // 基于 token，不需要 session
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 // 下面开始设置权限
                 .authorizeRequests(authorize -> authorize
                         // 请求放开接口
-                        .antMatchers("/druid/**","/favicon.ico",
-                                "/user/account/register",
-                                "/user/account/login",
-                                "/admin/account/login",
-                                "/image/add",
-                                "/column/favoriteVideo",
-                                "/article/get",
-                                "/favorite/get-all/user",
-                                "/article/get/all",
-                                "/category/getall",
-                                "/video/random/visitor",
-                                "/video/cumulative/visitor",
-                                "/video/getone",
-                                "/ws/danmu/**",
-                                "/danmu-list/**",
-                                "/msg/chat/outline",
-                                "/video/play/visitor",
-                                "/favorite/get-all/visitor",
-                                "/search/**",
-                                "/post/add",
-                                "/post/get",
-                                "/comment/get",
-                                "/comment/reply/get-more",
-                                "/comment/get-up-like",
-                                "/user/info/get-one",
-                                "/video/user-works-count",
-                                "/video/user-works",
-                                "/video/user-love",
-                                "/video/user-collect",
-                                "/article/user-works",
-                                "/column/favoriteVideo",
-                                "/following/update",
-                                "/isFans",
-                                "/column/markdown"
-                        ).permitAll()
+                        .antMatchers(HttpMethod.GET, "/article/get", "/article/user-works", "/column/markdown", "/column/favoriteVideo").permitAll()
                         // 允许HTTP OPTIONS请求
                         .antMatchers(HttpMethod.OPTIONS).permitAll()
                         // 其他地址的访问均需验证权限
                         .anyRequest().authenticated()
                 )
                 // 添加 JWT 过滤器，JWT 过滤器在用户名密码认证过滤器之前
+                .addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }

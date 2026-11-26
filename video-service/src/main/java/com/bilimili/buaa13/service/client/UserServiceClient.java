@@ -17,7 +17,7 @@ import java.util.Map;
 //服务名称和url
 //用于接收video微服务模块传输的对象
 //自动将调用路由到'video-service'
-@FeignClient(name = "user-service",configuration = FeignConfig.class,fallback = UserServiceClientFallback.class)
+@FeignClient(name = "user-service", url = "${USER_SERVICE_URL:}",configuration = FeignConfig.class,fallback = UserServiceClientFallback.class)
 public interface UserServiceClient {
 
     //从userService中寻找提供的服务

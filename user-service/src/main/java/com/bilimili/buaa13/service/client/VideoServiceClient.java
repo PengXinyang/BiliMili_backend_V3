@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 //服务名称和url
 //用于接收video微服务模块传输的对象
 //自动将调用路由到'video-service'
-@FeignClient(name = "video-service", configuration = FeignConfig.class,fallback = VideoServiceClientFallback.class)
+@FeignClient(name = "video-service", url = "${VIDEO_SERVICE_URL:}", configuration = FeignConfig.class,fallback = VideoServiceClientFallback.class)
 public interface VideoServiceClient {
 
     //从videoService中寻找提供的服务

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.bilimili.buaa13.entity.Article;
 import com.bilimili.buaa13.entity.ResponseResult;
 import com.bilimili.buaa13.entity.User;
+import com.bilimili.buaa13.entity.dto.UserDTO;
 import com.bilimili.buaa13.entity.Video;
 import com.bilimili.buaa13.entity.Favorite;
 import com.bilimili.buaa13.mapper.ArticleMapper;
@@ -185,7 +186,7 @@ public class ArticleController {
             map.put("coverUrl", article.getCoverUrl());
             map.put("content", content.toString());
             map.put("title", article.getTitle());
-            User user = userArticleClient.getUserById(article.getUid());
+            UserDTO user = userArticleClient.getUserById(article.getUid());
             /**
              *
              * QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
