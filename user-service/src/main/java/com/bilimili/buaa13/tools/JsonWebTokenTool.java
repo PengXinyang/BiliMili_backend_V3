@@ -62,13 +62,13 @@ public class JsonWebTokenTool {
         Date expirationDate = new Date(expirationMillis);
 
         String token = Jwts.builder()
-                .setId(uuid)    // 随机id，用于生成无规则token
-                .setSubject(uid)    // 加密主体
+                .setId(uuid)    // 随机id，用于生成无规则token；// 设置 JWT ID（唯一标识符），通常是一个随机 UUID
+                .setSubject(uid)    // 设置加密主题（subject），这里存储的是用户ID
                 .claim("role", role)    // token角色参数 user/admin 用于区分普通用户和管理员
-                .signWith(secretKey, signatureAlgorithm)
-                .setIssuedAt(current)
-                .setExpiration(expirationDate)
-                .compact();
+                .signWith(secretKey, signatureAlgorithm)// 使用密钥 `secretKey` 和签名算法 `signatureAlgorithm` 进行签名
+                .setIssuedAt(current)//签发时间
+                .setExpiration(expirationDate)//过期时间
+                .compact();//生成最终的JWT字符串
 
         try {
             //缓存token信息，管理员和用户之间不要冲突

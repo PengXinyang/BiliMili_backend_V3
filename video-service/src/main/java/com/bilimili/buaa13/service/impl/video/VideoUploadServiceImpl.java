@@ -45,6 +45,7 @@ public class VideoUploadServiceImpl implements VideoUploadService {
     @Autowired
     private VideoStatusMapper videoStatusMapper;
 
+    @Qualifier("com.bilimili.buaa13.service.client.UserServiceClient")
     @Autowired
     private UserServiceClient userServiceClient;
 
