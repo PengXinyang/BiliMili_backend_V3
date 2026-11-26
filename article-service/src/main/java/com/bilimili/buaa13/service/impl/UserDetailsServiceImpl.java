@@ -1,7 +1,7 @@
 package com.bilimili.buaa13.service.impl.user;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.bilimili.buaa13.entity.User;
+import com.bilimili.buaa13.service.client.UserArticleClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,14 +14,11 @@ import org.springframework.stereotype.Service;
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
-    private UserMapper userMapper;
+    private UserArticleClient userArticleClient;
 
     @Override
     public UserDetails loadUserByUsername(String account) throws UsernameNotFoundException {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", account);
-        queryWrapper.ne("state", 2);
-        User user = userMapper.selectOne(queryWrapper);
+        User user = userArticleClient.getUserByName(account);
         if (user == null) {
             return null;
         }

@@ -1,13 +1,13 @@
 package com.bilimili.buaa13.service.impl.user;
 
+import com.bilimili.buaa13.service.client.MessageServiceClient;
+
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.bilimili.buaa13.entity.*;
 import com.bilimili.buaa13.entity.dto.UserDTO;
-import com.bilimili.buaa13.im.IMServer;
 import com.bilimili.buaa13.mapper.FavoriteMapper;
-import com.bilimili.buaa13.mapper.MessageUnreadMapper;
 import com.bilimili.buaa13.mapper.UserMapper;
 import com.bilimili.buaa13.service.record.UserRecordService;
 import com.bilimili.buaa13.service.user.UserAccountService;
@@ -16,7 +16,6 @@ import com.bilimili.buaa13.service.utils.CurrentUser;
 import com.bilimili.buaa13.tools.ESTool;
 import com.bilimili.buaa13.tools.JsonWebTokenTool;
 import com.bilimili.buaa13.tools.RedisTool;
-import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +51,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     private UserMapper userMapper;
 
     @Autowired
-    private MessageUnreadMapper messageUnreadMapper;
+    private MessageServiceClient messageServiceClient;
 
     @Autowired
     private FavoriteMapper favoriteMapper;
@@ -153,7 +152,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         String encodedPassword = passwordEncoder.encode(password);  // 密文存储
         User newUser = getNewUser(account, encodedPassword, newUserUid);
         userMapper.insert(newUser);
-        messageUnreadMapper.insert(new MessageUnread(newUser.getUid(),0,0,0,0,0,0));
+        // 消息未读行由 message-service 在首次访问或通知时自动创建。
         favoriteMapper.insert(new Favorite(newUser.getUid(), newUser.getUid(), 1, 1, null, "默认收藏夹", "", 0, null));
         favoriteMapper.insert(new Favorite(5000+ newUser.getUid(), newUser.getUid(), 1, 1, null, "历史记录", "", 0, null));
         List<Integer> zero=new ArrayList<>();
@@ -407,28 +406,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         redisTool.deleteValue("token:user:" + LoginUserId);
         redisTool.deleteValue("security:user:" + LoginUserId);
         redisTool.deleteSetMember("login_member", LoginUserId);   // 从在线用户集合中移除
-        // 清除全部在聊天窗口的状态,删除指定前缀的所有key
-        // 获取以指定前缀开头的所有键
-        Set<String> userKeys = redisTemplate.keys("message:" + LoginUserId + ":" + "*");
-        // 删除匹配的键
-        if (userKeys != null && !userKeys.isEmpty()) {
-            redisTemplate.delete(userKeys);
-        }
-
-        // 断开全部该用户的channel 并从 userChannel 移除该用户
-        Set<Channel> userChannels = IMServer.userChannel.get(LoginUserId);
-        if(userChannels == null){ return;}
-        else{
-            for (Channel channel : userChannels) {
-                try {
-                    channel.close().sync(); // 等待通道关闭完成
-                } catch (InterruptedException e) {
-                    // 处理异常，如果有必要的话
-                    e.printStackTrace();
-                }
-            }
-            IMServer.userChannel.remove(LoginUserId);
-        }
+        messageServiceClient.disconnect(LoginUserId);
     }
 
     /**

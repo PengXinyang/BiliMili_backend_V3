@@ -18,6 +18,28 @@ spring:
           enabled: true   # 启用服务发现自动路由
           lower-case-service-id: true
       routes:
+        - id: message-websocket
+          uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8084}
+          predicates:
+            - Path=/message/im
+          filters:
+            - StripPrefix=1
+        - id: message-websocket-legacy
+          uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8084}
+          predicates:
+            - Path=/im
+        - id: message-service
+          uri: ${MESSAGE_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/message/**
+          filters:
+            - StripPrefix=1
+        - id: message-unread-legacy
+          uri: ${MESSAGE_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/user/msg-unread/**
+          filters:
+            - StripPrefix=1
         - id: user-service
           uri: lb://user-service  # 使用负载均衡的服务发现机制
           predicates:

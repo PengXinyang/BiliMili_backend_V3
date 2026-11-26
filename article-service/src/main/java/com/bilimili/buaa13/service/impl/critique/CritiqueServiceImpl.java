@@ -119,7 +119,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param offset 分页偏移量（已经获取到的评论树的数量）
      * @param sortType  排序类型 1 按热度排序 2 按时间排序
      * @return  评论树列表
-     * 2024.08.05
+     * 2026.11.26
      */
     @Override
     public List<CritiqueTree> getCritiqueTreeByAid(Integer aid, Long offset, Integer sortType) {
@@ -139,7 +139,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param start 子评论开始偏移量
      * @param end  子评论结束偏移量
      * @return  单棵评论树
-     * 2024.08.03
+     * 2026.11.26
      */
     private CritiqueTree buildCritiqueTree(Critique critique, Long start, Long end) {
         //先将子节点设为null，下面再递归构建
@@ -196,7 +196,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param acceptId  被回复用户postId
      * @param content   评论内容
      * @return  true 发送成功 false 发送失败
-     * 2024.08.05
+     * 2026.11.26
      */
     @Override
     @Transactional
@@ -296,7 +296,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param rootId 根级节点的评论 criId, 即楼层 criId
      * @return 1. 根据 redis 查找出回复该评论的子评论 criId 列表
      * 2. 根据 criId 多线程查询出所有评论的详细信息
-     * 2024.08.03
+     * 2026.11.26
      */
     @Override
     public List<Critique> getChildCritiquesByRootId(Integer rootId, Long start, Long end) {
@@ -318,7 +318,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param offset 偏移量，已经获取到的根评论数量
      * @param sortType 1:按热度排序 2:按时间排序
      * @return List<Critique>
-     * 2024.08.05
+     * 2026.11.26
      */
     @Override
     public List<Critique> getRootCritiquesByAid(Integer aid, Long offset, Integer sortType) {
@@ -351,7 +351,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * 由于获取的是回复，所以根据当前评论节点为基准，构建评论树
      * @param criId 根评论id
      * @return  包含全部回复评论的评论树
-     * 2024.08.03
+     * 2026.11.26
      */
     @Override
     public CritiqueTree getMoreCritiquesById(Integer criId) {
@@ -364,7 +364,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * 用于原本点踩了，现在直接点赞，一次改完。
      * @param criId    评论id
      * @param addUpVote   true 点赞 false 点踩
-     * 2024.08.03
+     * 2026.11.26
      */
     @Override
     public void updateLikeAndDisLike(Integer criId, boolean addUpVote) {
@@ -394,7 +394,7 @@ public class CritiqueServiceImpl implements CritiqueService {
      * @param column    "love" 点赞 "bad" 点踩
      * @param increase  true 增加 false 减少
      * @param count     更改数量
-     * 2024.08.03
+     * 2026.11.26
      */
     @Override
     public void updateCritique(Integer criId, String column, boolean increase, Integer count) {

@@ -1,17 +1,15 @@
 package com.bilimili.buaa13.service.impl.user;
 
+import com.bilimili.buaa13.service.client.MessageServiceClient;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.bilimili.buaa13.entity.IMResponse;
 import com.bilimili.buaa13.entity.UserVideo;
 import com.bilimili.buaa13.entity.Video;
-import com.bilimili.buaa13.im.IMServer;
 import com.bilimili.buaa13.mapper.UserVideoMapper;
 import com.bilimili.buaa13.service.client.VideoServiceClient;
-import com.bilimili.buaa13.service.message.MessageUnreadService;
 import com.bilimili.buaa13.service.user.UserVideoService;
 import com.bilimili.buaa13.tools.RedisTool;
-import io.netty.channel.Channel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,7 @@ public class UserVideoServiceImpl implements UserVideoService {
     private UserVideoMapper userVideoMapper;
 
     @Autowired
-    private MessageUnreadService messageUnreadService;
+    private MessageServiceClient messageServiceClient;
 
     @Autowired
     private VideoServiceClient videoServiceClient;
@@ -119,16 +117,7 @@ public class UserVideoServiceImpl implements UserVideoService {
                 if(!Objects.equals(video.getUid(), uid)) {
                     // 更新最新被点赞的视频
                     redisTool.storeZSet("be_loved_zset:" + video.getUid(), vid);
-                    messageUnreadService.addOneUnread(video.getUid(), "love");
-                    // netty 通知未读消息
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("type", "接收");
-                    Set<Channel> channels = IMServer.userChannel.get(video.getUid());
-                    if (channels != null) {
-                        for (Channel channel: channels) {
-                            channel.writeAndFlush(IMResponse.message("love", map));
-                        }
-                    }
+                    messageServiceClient.notify(video.getUid(), "love", "love:" + java.util.UUID.randomUUID());
                 }
             }, taskExecutor);
         } else if (isLove) {

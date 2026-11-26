@@ -39,3 +39,7 @@ build/
 /public/chunk/
 /public/img/cover/
 /public/video/
+
+### Local runtime and verification outputs ###
+*.log
+/data/

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BiliMili 私聊调试</title>
+<style>body{font:16px/1.6 system-ui;max-width:800px;margin:40px auto;padding:0 20px;background:#f5f7fb;color:#182333}input,textarea,button{font:inherit;padding:8px;margin:5px 0;box-sizing:border-box}input,textarea{width:100%}button{cursor:pointer;margin-right:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:white;padding:16px;border-radius:8px}label{display:block}small{color:#536479}</style>
+<h1>BiliMili 私聊调试</h1><p>使用两个浏览器窗口，分别填入两个已登录用户的 Token。消息记录由消息服务保存。</p>
+<label>用户登录 Token<input id="token" type="password" autocomplete="off" placeholder="Bearer ..."></label>
+<label>对方用户 ID<input id="peer" type="number" min="1"></label>
+<button id="connect">连接私聊</button><button id="history">历史消息</button><button id="read">标记已读</button><button id="unread">未读数</button>
+<label>消息内容<textarea id="content" maxlength="500" rows="3"></textarea></label><button id="send">发送</button>
+<label>消息 ID（从返回记录中获取）<input id="messageId" type="number" min="1"></label><button id="withdraw">撤回</button><button id="remove">仅从我的历史记录删除</button>
+<p id="status">尚未连接</p><small>Token 只保存在当前页面内存中，不写入本地存储。HTTP 与 WebSocket 共用服务端口。</small><pre id="log"></pre>
+<script>
+const $=id=>document.getElementById(id);let socket;
+const base=location.pathname.startsWith('/message')?'/message':'';
+function log(value){$('log').textContent=JSON.stringify(value,null,2)+'\n'+$('log').textContent;}
+function token(){const t=$('token').value.trim();return t.startsWith('Bearer ')?t:'Bearer '+t;}
+async function api(method,path){try{const r=await fetch(base+path,{method,headers:{Authorization:token()}});log(await r.json());}catch(e){log({error:e.message});}}
+$('connect').onclick=()=>{if(socket)socket.close();socket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+base+'/im');socket.onopen=()=>socket.send(JSON.stringify({code:100,content:token()}));socket.onmessage=e=>{const m=JSON.parse(e.data);log(m);if(m.type==='connected')$('status').textContent='已连接，当前用户 '+m.data.uid;};socket.onclose=()=>{$('status').textContent='连接已关闭';};socket.onerror=()=>{$('status').textContent='连接失败，请检查服务与登录状态';};};
+function command(body){if(!socket||socket.readyState!==WebSocket.OPEN)return log({error:'请先连接并完成认证'});socket.send(JSON.stringify(body));}
+$('send').onclick=()=>command({code:101,acceptId:Number($('peer').value),content:$('content').value});
+$('withdraw').onclick=()=>command({code:102,id:Number($('messageId').value)});
+$('history').onclick=()=>api('GET','/api/chats/'+Number($('peer').value)+'/messages');
+$('read').onclick=()=>api('POST','/api/chats/'+Number($('peer').value)+'/read');
+$('unread').onclick=()=>api('GET','/api/unread');
+$('remove').onclick=()=>api('DELETE','/api/messages/'+Number($('messageId').value));
+</script></html>

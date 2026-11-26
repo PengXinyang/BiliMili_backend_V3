@@ -1,20 +1,19 @@
 package com.bilimili.buaa13.controller;
 
+import com.bilimili.buaa13.service.client.MessageServiceClient;
+
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.bilimili.buaa13.entity.*;
 import com.bilimili.buaa13.entity.dto.UserDTO;
-import com.bilimili.buaa13.im.IMServer;
 import com.bilimili.buaa13.mapper.FavoriteMapper;
 import com.bilimili.buaa13.mapper.FavoriteVideoMapper;
 import com.bilimili.buaa13.mapper.UserMapper;
 import com.bilimili.buaa13.service.favorite.FavoriteVideoService;
-import com.bilimili.buaa13.service.message.MessageUnreadService;
 import com.bilimili.buaa13.service.user.UserService;
 import com.bilimili.buaa13.service.utils.CurrentUser;
 import com.bilimili.buaa13.tools.RedisTool;
-import io.netty.channel.Channel;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -39,9 +38,7 @@ public class UserClientController {
     @Autowired
     private RedisTool redisTool;
     @Autowired
-    private IMServer imServer;
-    @Autowired
-    private MessageUnreadService messageUnreadService;
+    private MessageServiceClient messageServiceClient;
     @Autowired
     private FavoriteMapper favoriteMapper;
     @Autowired
@@ -101,15 +98,7 @@ public class UserClientController {
         if(!toUid.equals(uid)) {
             //1注释Redis
             redisTool.storeZSet("reply_zset:" + toUid, id);
-            messageUnreadService.addOneUnread(toUid, "reply");
-
-            // 通知未读消息
-            Map<String, Object> map = new HashMap<>();
-            map.put("type", "接收");
-            Set<Channel> commentChannel = IMServer.userChannel.get(toUid);
-            if (commentChannel != null) {
-                commentChannel.stream().parallel().forEach(channel -> channel.writeAndFlush(IMResponse.message("reply", map)));
-            }
+            messageServiceClient.notify(toUid, "reply", "reply:" + java.util.UUID.randomUUID());
         }
     }
     public void handleCommentHandler(@RequestParam("uid") Integer uid,

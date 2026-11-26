@@ -41,7 +41,6 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         System.out.println("user-service-dofilter" );
         String token = request.getHeader("Authorization");
-        System.out.println("user-service-dofilter token" + token);
         if (!StringUtils.hasText(token) || !token.startsWith("Bearer ")) {
             // 通过开放接口过滤器后，如果没有可解析的token就放行
             System.out.println("judge token");

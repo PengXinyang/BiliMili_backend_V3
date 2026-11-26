@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "userService", url = "http://userService:9090")
 public interface UserArticleClient {
+    @GetMapping("/user/getUserByName/{account}")
+    User getUserByName(@PathVariable("account") String account);
+
     @GetMapping("/user/dto/{uid}")
     UserDTO getUserDTOById(@PathVariable("uid") Integer uid);
 

@@ -6,19 +6,7 @@ USE USERSERVICE;
 -- Table structure for table `chat`
 --
 
-DROP TABLE IF EXISTS `chat`;
-
-CREATE TABLE `chat` (
-                        `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '唯一主键',
-                        `post_id` int(11) NOT NULL COMMENT '对象UID',
-                        `accept_id` int(11) NOT NULL COMMENT '用户UID',
-                        `is_deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否移除聊天 0否 1是',
-                        `unread_num` int(11) NOT NULL DEFAULT '0' COMMENT '消息未读数量',
-                        `latest_time` datetime NOT NULL COMMENT '最近接收消息的时间或最近打开聊天窗口的时间',
-                        PRIMARY KEY (`id`),
-                        UNIQUE KEY `from_to` (post_id,accept_id),
-                        UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COMMENT='聊天表';
+-- chat 表由 message-service 管理，参见 message-service/database。
 
 
 
@@ -28,21 +16,7 @@ CREATE TABLE `chat` (
 -- Table structure for table `chat_detailed`
 --
 
-DROP TABLE IF EXISTS `chat_detailed`;
-
-CREATE TABLE `chat_detailed` (
-                                 `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '唯一主键',
-                                 `post_id` int(11) NOT NULL COMMENT '消息发送者',
-                                 `accept_id` int(11) NOT NULL COMMENT '消息接收者',
-                                 `content` varchar(500) NOT NULL COMMENT '消息内容',
-                                 `post_del` tinyint(4) NOT NULL DEFAULT '0' COMMENT '发送者是否删除',
-                                 `accept_del` tinyint(4) NOT NULL DEFAULT '0' COMMENT '接受者是否删除',
-                                 `withdraw` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否撤回',
-                                 `time` datetime NOT NULL COMMENT '消息发送时间',
-                                 `status` int(4) not null default 1 comment '消息状态',
-                                 PRIMARY KEY (`id`),
-                                 UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COMMENT='聊天记录表';
+-- chat_detailed 表由 message-service 管理，参见 message-service/database。
 
 
 
@@ -190,19 +164,7 @@ CREATE TABLE `user_video` (
 -- Table structure for table `message_unread`
 --
 
-DROP TABLE IF EXISTS `message_unread`;
-
-CREATE TABLE message_unread (
-                                `uid` int(11) NOT NULL COMMENT '用户ID',
-                                `reply` int(11) NOT NULL DEFAULT '0' COMMENT '回复我的',
-                                `at_num` int(11) NOT NULL DEFAULT '0' COMMENT '@我的',
-                                `up_vote` int(11) NOT NULL DEFAULT '0' COMMENT '收到的赞',
-                                `system_message` int(11) NOT NULL DEFAULT '0' COMMENT '系统通知',
-                                `message` int(11) NOT NULL DEFAULT '0' COMMENT '我的消息',
-                                `dynamic` int(11) NOT NULL DEFAULT '0' COMMENT '动态',
-                                PRIMARY KEY (`uid`),
-                                UNIQUE KEY `uid` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息未读数';
+-- message_unread 表由 message-service 管理，参见 message-service/database。
 
 
 
