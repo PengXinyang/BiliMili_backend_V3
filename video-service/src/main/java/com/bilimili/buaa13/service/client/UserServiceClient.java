@@ -21,7 +21,7 @@ import java.util.Map;
 public interface UserServiceClient {
 
     //从userService中寻找提供的服务
-    @GetMapping("/user/{uid}")
+    @GetMapping("/user/public/{uid}")
     UserDTO getUserById(@PathVariable("uid") Integer uid);
 
 

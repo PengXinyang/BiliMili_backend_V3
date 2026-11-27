@@ -28,7 +28,7 @@ import java.util.*;
 @RestController
 public class ArticleController {
     @Autowired(required = true)
-    private OSS ossClient;
+    private com.bilimili.buaa13.tools.OssTool ossTool;
 
     @Autowired
     private UserArticleClient userArticleClient;
@@ -173,14 +173,7 @@ public class ArticleController {
         String key = contentUrl.replace(OSS_BUCKET_URL, ""); // 获取对象的key
 
         try {
-            OSSObject ossObject = ossClient.getObject(bucketName, key);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(ossObject.getObjectContent()));
-            StringBuilder content = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
-            }
-            reader.close();
+            String content = ossTool.readText(contentUrl);
 
             Map<String, Object> map = new HashMap<>();
             map.put("coverUrl", article.getCoverUrl());
@@ -199,7 +192,7 @@ public class ArticleController {
             responseResult.setMessage("Success");
         } catch (Exception e) {
             responseResult.setCode(500);
-            responseResult.setMessage("Failed to retrieve content from OSS");
+            responseResult.setMessage("Failed to retrieve article content");
         }
 
         return responseResult;

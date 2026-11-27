@@ -1,0 +1,7 @@
+.local/
+.tools/
+*.log
+
+__pycache__/
+demo/cluster.json
+demo/commands.html

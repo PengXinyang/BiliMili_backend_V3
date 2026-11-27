@@ -28,6 +28,7 @@ import java.util.UUID;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("!local-storage")
 public class OssTool {
     @Value("${oss.bucket}")
     private String OSS_BUCKET;
@@ -38,11 +39,18 @@ public class OssTool {
     @Value("${directory.chunk}")
     private String CHUNK_DIRECTORY;   // 分片存储目录
 
-    @Autowired
+    @Autowired(required = false)
     private OSS ossClient;
 
     @Autowired
     private Environment environment;
+
+    public String readText(String url) throws IOException {
+        String key = url.startsWith(OSS_BUCKET_URL) ? url.substring(OSS_BUCKET_URL.length()) : url;
+        try (OSSObject object = ossClient.getObject(OSS_BUCKET, key); InputStream input = object.getObjectContent()) {
+            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
 
     private static final int VISIT_URL_EXPIRATION = 365*10;
 

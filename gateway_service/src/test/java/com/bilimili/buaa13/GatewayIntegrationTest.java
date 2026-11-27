@@ -73,6 +73,15 @@ class GatewayIntegrationTest {
                 .expectBody().jsonPath("$.path").isEqualTo(target));
     }
 
+    @Test void userVideoInteractionRoutesReachUserServiceWithoutExtraPrefix() {
+        client.get().uri("/user/video/collected-fids?vid=1").exchange().expectStatus().isOk()
+                .expectBody().jsonPath("$.path").isEqualTo("/video/collected-fids?vid=1");
+        client.post().uri("/user/video/play/user").header("Authorization", "Bearer valid-test")
+                .exchange().expectStatus().isOk().expectBody()
+                .jsonPath("$.path").isEqualTo("/video/play/user")
+                .jsonPath("$.authorization").isEqualTo("Bearer valid-test");
+    }
+
     @Test void authenticationHeadersAndBackendFailuresArePreserved() {
         client.get().uri("/user/personal/info").exchange().expectStatus().isUnauthorized();
         client.get().uri("/user/personal/info").header("Authorization", "Bearer invalid-test")

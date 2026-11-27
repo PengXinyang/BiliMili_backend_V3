@@ -92,7 +92,7 @@ public class SecurityConfig {
                 .authorizeRequests(authorize -> authorize
                         // 请求放开接口
                         .antMatchers(HttpMethod.POST, "/user/account/register", "/user/account/login", "/admin/account/login").permitAll()
-                        .antMatchers(HttpMethod.GET, "/user/info/get-one", "/favorite/get-all/visitor", "/post/get", "/isFans", "/user/following/get-all/user", "/user/fans/get-all/user").permitAll()
+                        .antMatchers(HttpMethod.GET, "/media/**", "/user/public/*", "/user/info/get-one", "/favorite/get-all/visitor", "/post/get", "/isFans", "/user/following/get-all/user", "/user/fans/get-all/user").permitAll()
                         // 允许HTTP OPTIONS请求
                         .antMatchers(HttpMethod.OPTIONS).permitAll()
                         // 其他地址的访问均需验证权限

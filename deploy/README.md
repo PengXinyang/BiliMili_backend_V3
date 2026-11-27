@@ -1,98 +1,119 @@
-# Kubernetes 部署适配说明
+# BiliMili 本地 Kubernetes 部署
 
-本次保留 Spring Cloud Gateway 和 Nacos，修正地址、配置加载、请求路径和鉴权。这里提供应用运行约定与 ConfigMap，尚不是一键启动完整系统的部署包。
+2026-11-27 已在 Docker Desktop 的 kind 集群中完成实际部署。上下文为 `docker-desktop`，Kubernetes v1.36.1，单节点 `desktop-control-plane`，独立命名空间 `bilimili`。包含原客户端和管理端的 11 个 Pod 均为 Ready；5 个 PVC 已绑定。
 
-## 服务名称与端口
+## 提交包与本机材料
 
-| 模块 | 注册名称 / Kubernetes Service 名称 | 默认容器端口 |
-|---|---|---|
-| gateway_service | gateway-service | 8080 |
-| user-service | user-service | 8081 |
-| video-service | video-service | 8082 |
-| article-service | article-service | 8083 |
-| message-service | message-service | 8084 |
+此目录已整理为源码提交包：依赖、构建产物、Git 元数据、`deploy/.local/`、`deploy/.tools/` 及独立截图均未包含。报告截图已经内嵌 Word。下文的凭据、快照和截图路径是部署与验证脚本生成的位置；新环境运行相应脚本后会生成文件。本机既有实验的凭据与验收记录保存在作业目录外的备份中，说明见 `../../提交说明.md`。
 
-前四个服务通过 Nacos 注册与发现。消息服务保持独立，通过 Kubernetes Service DNS 与用户服务、网关通信；当前部署单副本。前三个业务服务及网关可用 SERVER_PORT 覆盖端口，消息服务用 MESSAGE_PORT。相应 Service.targetPort 必须同步设置。旧 Nacos 配置若仍指定 9090 等端口，会覆盖文件默认值，部署时需统一检查。
+## 访问与重新打开
 
-## 配置加载
+- 原客户端：http://localhost:8787
+- 原管理端：http://localhost:8788
+- 后端辅助验证页面：http://localhost:18080/media/demo/index.html
+- 实机验收记录：http://localhost:18080/media/demo/evidence.html
+- 网关健康检查：http://localhost:18080/actuator/health
+- Elasticsearch：http://localhost:19200/_cluster/health
+- Nacos 配置与服务发现 API：http://localhost:18848/nacos/
 
-- 本机默认 dev；容器设置 SPRING_PROFILES_ACTIVE=k8s。
-- 各模块自带 bootstrap 配置，k8s 环境默认连接 nacos:8848，不再注册 127.0.0.1。POD_IP 未设置时由 Nacos 客户端检测本机地址；在 Kubernetes 中建议用 Downward API 注入实际 Pod IP。
-- NACOS_SERVER_ADDR 使用 host:port，可通过环境变量覆盖；NACOS_NAMESPACE 填命名空间 ID，public 使用空字符串；NACOS_GROUP 默认为 DEFAULT_GROUP。
-- NACOS_USERNAME、NACOS_PASSWORD 从 Secret 注入，仓库不提供密码。
-- 使用现有 Spring Cloud Alibaba 2021 + bootstrap 加载机制；移除多余 Spring Cloud Config Server/Client 依赖及重复 config import。
-- Nacos 中按服务名称发布 YAML 配置，例如 user-service-k8s.yaml、video-service-k8s.yaml、article-service-k8s.yaml、gateway-service-k8s.yaml，group、namespace 须与客户端相同。原工程的 MySQL、Redis、OSS、Elasticsearch 等配置仍须恢复或补齐，不应以空配置启动业务服务。
-- 不要从旧配置中重新引入固定 discovery.ip、localhost 数据库地址、旧网关 routes 或 MVC 设置。业务父 POM 未全面重构，网关已单独继承 Boot，仅加载响应式网关所需依赖。
+演示账号为 `demo_alice`、`demo_bob`（UID 1、2）。随机生成的演示密码保存在 `deploy/.local/demo-accounts.json`，不会写入 Git 或截图。独立管理员为 `demo_admin`（UID 3），密码保存在 `deploy/.local/frontend-accounts.json`。8787、8788 分别运行原 Vue 客户端和管理端；18080 下的实验页面保留用于后端诊断。
 
-在同一 namespace 创建 Nacos Service，应用 Deployment 的容器可使用：
-
-```yaml
-envFrom:
-  - configMapRef:
-      name: bilimili-runtime
-env:
-  - name: POD_IP
-    valueFrom:
-      fieldRef:
-        fieldPath: status.podIP
-  - name: NACOS_USERNAME
-    valueFrom:
-      secretKeyRef:
-        name: bilimili-secrets
-        key: nacos-username
-  - name: NACOS_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: bilimili-secrets
-        key: nacos-password
-```
-
-k8s/runtime-config.yaml 是可复用 ConfigMap；部署时按目标 namespace 应用，示例中的 Secret 需自行创建。它不包含 Deployment、Service 或数据库初始化。
-
-## 服务间调用
-
-用户、视频、文章的 Feign 服务名统一为 user-service / video-service，默认使用 Nacos。USER_SERVICE_URL、VIDEO_SERVICE_URL 可选地设为直接 HTTP 地址，便于本地调试；不设置时通过注册中心发现。直接地址应指向目标业务服务，不能指向会再次转发回自己的网关。
-
-消息服务在 k8s 环境默认访问 http://user-service:8081；用户服务默认访问 http://message-service:8084；网关的消息 HTTP 和 WebSocket 目标分别为 http://message-service:8084、ws://message-service:8084。可以分别通过 USER_SERVICE_URL、MESSAGE_SERVICE_URL、MESSAGE_SERVICE_WS_URL 覆盖。用户和消息服务仍需配置相同的 MESSAGE_INTERNAL_TOKEN。消息数据库默认主机 mysql，账号密码及数据库创建方式见 message-service/README.md。
-
-文章服务补齐 Bearer token 透传，用户资料接口统一到实际存在的 /user/{uid}，使用 UserDTO 接收，不读取完整用户实体。此适配不代表原项目所有历史业务接口均已完成联调。
-
-## 网关路径约定
-
-原有“服务前缀 + 后端完整路径”仍保留，通常移除第一个服务前缀。后端自身以 /user 或 /article 开头的常用接口额外提供无重复前缀的入口。路由名称中的 public-paths 表示对外路径别名，不表示免登录。
-
-| 网关路径 | 后端接收到的路径 |
-|---|---|
-| POST /user/account/login | /user/account/login |
-| POST /user/user/account/login（兼容） | /user/account/login |
-| GET /user/personal/info | /user/personal/info |
-| GET /user/user/info/get-one?uid=1 | /user/info/get-one?uid=1 |
-| GET /video/getone?vid=1 | /getone?vid=1 |
-| POST /video/change/status | /video/change/status |
-| GET /article/get?aid=1 | /article/get?aid=1 |
-| GET /article/article/get?aid=1（兼容） | /article/get?aid=1 |
-| GET /article/column/markdown | /column/markdown |
-| GET /message/api/unread | /api/unread |
-| GET /user/msg-unread/all | /msg-unread/all |
-| WebSocket /message/im 或 /im | /im |
-
-自动服务发现路由已关闭，避免出现另一组绕过明确路由的入口。网关在前缀重写后阻止转发 /internal、下游 /actuator、/druid 和返回账户凭据的 /user/getUserByName/**；服务间调用使用内部地址。网关自身 /actuator/health/liveness 和 /actuator/health/readiness 可用于探针。
-
-## 鉴权与跨域
-
-网关只使用 WebFlux Security，不创建登录 Session，不启用 Basic 或表单登录，保留原始 Authorization 头与下游 401/403。用户、视频和文章服务使用各自 JWT 过滤器与 Redis 登录状态校验，消息服务通过用户服务校验身份。网关放行路由到下游不等于业务接口允许匿名访问。
-
-用户与视频服务旧的 /**、/user/** 全放行规则已移除；仅允许明确的注册、登录及公开 GET 查询。文章服务接入与其他业务服务一致的 JWT 过滤器。匿名请求受保护接口返回 401，无效 Bearer token 返回 403。管理操作的角色检查仍由业务层负责；这些修改不是对旧项目全部业务权限的审计。
-
-WebSocket /im 允许握手，随后仍由消息服务执行 code=100 首帧认证。GATEWAY_ALLOWED_ORIGINS 和 MESSAGE_ALLOWED_ORIGINS 应设置为实际前端 Origin（协议、主机、端口），不要使用带凭据的通配来源。网关处理 OPTIONS 预检；跨域响应头去重，避免网关和下游同时添加。
-
-## 验证
+重新启动电脑或 Docker Desktop 后，等待 Kubernetes 运行，在仓库根目录执行：
 
 ```powershell
-mvn -pl gateway_service,user-service,video-service,article-service,message-service test
-mvn -DskipTests package
+kubectl --context docker-desktop get pods -n bilimili
+./deploy/start-local.ps1 -Restart
 ```
 
-网关测试启动真实 Spring Cloud Gateway 与 HTTP/WebSocket 测试后端，验证路径重写、登录转发、Authorization 透传、401/403、内部接口隔离、CORS、WebSocket 和健康探针。三个业务模块使用真实安全配置与 JWT 过滤器验证路由权限，Redis/JWT 工具使用测试替身。消息模块仍执行已有的 HTTP/WebSocket/H2 集成测试。
+脚本在后台启动仅绑定 127.0.0.1 的五个端口转发（未部署前端时跳过其端口）。Pod 被重建后，旧的端口转发可能结束，重新执行此命令即可。集群状态页面使用带时间戳的采集快照，内容查询及私聊页直接访问当前服务。
 
-这些测试不启动真实 Nacos、MySQL、Redis，也不代表 Kubernetes 已经部署成功。下一阶段仍须搭建集群、准备业务配置及镜像，并验证真实登录和业务调用。
+## 部署组成
+
+| 服务 | 容器端口 | 职责 |
+|---|---:|---|
+| client-frontend | 8787 | 原 Vue 客户端，Nginx 静态托管与 HTTP/WebSocket 代理 |
+| admin-frontend | 8788 | 原 Vue 管理端，独立管理员登录与内容审核查询 |
+| gateway-service | 8080 | Spring Cloud Gateway，统一 HTTP/WebSocket 入口 |
+| user-service | 8081 | 注册登录、用户资料、供消息服务验证身份、本地媒体读取 |
+| video-service | 8082 | 视频元数据与用户资料聚合 |
+| article-service | 8083 | 文章元数据、PVC 正文和作者资料聚合 |
+| message-service | 8084 | 独立私聊、未读、已读、撤回、消息持久化 |
+| mysql | 3306 | 四个独立业务数据库，各自应用账号 |
+| redis | 6379 | 登录状态与缓存，启用 AOF |
+| nacos | 8848 / 9848 / 9849 | 配置管理、服务注册与发现 |
+| elasticsearch | 9200 | 用户和视频索引，单节点、单分片、零副本 |
+
+本次四个业务服务使用 `lab-20261127` 标签；网关和两个前端使用 `frontend-20261127` 标签。调试时生成的 local、local2、local3、local4 标签已删除。前四个服务注册到 Nacos；独立消息服务使用 Kubernetes Service DNS。Nacos 是注册与配置中心，实际网关仍为 Spring Cloud Gateway。
+
+持久化卷为 `mysql-data`、`redis-data`、`es-data`、`nacos-data`、`media-data`，使用 Docker Desktop 默认的 `standard` StorageClass。媒体卷由三个业务服务共享；视频上传临时分片使用 emptyDir。数据库、索引、配置和演示媒体均属于这套独立环境，没有使用历史云服务数据。
+
+## 本次代码与配置修正
+
+1. 修正父 POM 的错误输出文件名，补齐业务模块可执行 JAR 打包和 Dockerfile。
+2. 移除用户、视频模块重复注册的 Feign token 拦截器。公开作者查询使用只返回 UserDTO 的 `/user/public/{uid}`，原账户凭据接口仍由网关隔离。
+3. 增加 `local-storage` Profile，通过 PVC 保存媒体与文章；不启用该 Profile 时仍使用原 OSS 实现。网关新增 `/media/**` 路由。
+4. 配置 Nacos、数据库、Redis、ES 的集群内地址，并通过 Secret 注入数据库密码及服务间认证令牌。
+5. 数据库初始化脚本显式设置 UTF-8，避免中文分类数据按错误编码导入。提供两个普通演示账号、一个独立管理员、一条视频、一篇文章以及测试产生的私聊记录。
+6. 为原客户端补齐私聊页、文章页、认证 WebSocket、未读同步及断线重连；修正管理端文章 API、分类字段、状态切换及成功提示。
+7. 修正网关的收藏夹查询与播放状态路由，增加路由测试；配置两个前端的同源 Nginx 代理和明确的 WebSocket Origin。
+8. 提供独立的部署生成、初始化、验收和截图脚本。
+
+## 从代码重新部署
+
+前提：Docker Desktop 运行，kind 集群已创建；本机有 Java 17 或更新版本、Maven、Python、Node.js/npm、kubectl；镜像拉取网络可用。建议至少预留 5 GB 磁盘空间供重新构建。依赖版本记录在 `requirements.txt`。
+
+```powershell
+python -m pip install -r deploy/requirements.txt
+./deploy/deploy-local.ps1 -Maven 'mvn.cmd'
+```
+
+本机 Maven 也可使用此前作业的工具：
+
+```powershell
+./deploy/deploy-local.ps1 -Maven 'D:/ziliao/服务计算基础/服务计算期末作业/备份/Homework-1/.tools/apache-maven-3.9.9/bin/mvn.cmd'
+```
+
+重新构建默认生成含日期和时间的新标签。两个前端目录与后端目录应并列放置，目录名分别为 `hhjt-frontend-client-master`、`hhjt-frontend-admin-master`。后端部署就绪后执行：
+
+```powershell
+python deploy/prepare_frontend_demo.py
+./deploy/deploy-frontends.ps1
+```
+
+前端脚本先拉取 Nginx 镜像，然后逐个执行 `npm ci`、`npm run build`、镜像构建和 Kubernetes 部署，最后启动端口转发。前端 Dockerfile 使用预先构建的 `dist`；请勿跳过静态构建后直接拿旧产物制作镜像。`-SkipBuild -ImageTag frontend-20261127` 仅用于复用本次已经存在的两个前端镜像。
+
+若只做开发调试，先停止对应前端的端口转发，再在前端目录运行 `npm ci`、`npm run serve`；开发代理仍访问本机 18080 网关。正式展示使用集群内 Nginx 提供的构建产物。
+
+脚本依次生成配置、部署基础设施、发布 Nacos 配置和 ES 索引、部署应用、复制媒体、创建演示账号并执行验收。`render_local.py` 会复用 `.local/credentials.json` 中已有密码；不要在保留数据库卷时删除这个文件再生成不同密码。SQL 初始化只在空 MySQL 数据目录首次启动时执行。
+
+`deploy/.local/`、`deploy/.tools/` 和采集快照均被 Git 忽略；生成的基础设施 JSON 包含 Secret，不应作为公开提交材料。可提交的部署代码包括渲染脚本、Nacos 非敏感配置、应用 YAML、Dockerfile 和验证页面。
+
+## 已执行的验证
+
+此前原有 29 项测试与新增的 2 项本地文件存储测试通过。本次前端适配新增 1 项网关路由测试，网关模块的 9 项测试全部通过；两套前端生产构建成功。
+
+`verify_local.py --persistence` 在真实集群上完成 11 项验收：双账号登录、鉴权及内部接口隔离、视频作者聚合、匿名公开访问、文章正文与作者、视频 Range 请求、ES 检索、双用户 WebSocket 投递、历史与已读、发送者撤回、消息 Pod 重建后保留历史。
+
+```powershell
+python deploy/verify_local.py --persistence
+python deploy/verify_local.py --snapshot
+```
+
+验收脚本会用演示账号发送测试消息，并在指定 `--persistence` 时重建消息服务 Pod；不会删除数据库。原始记录写入 `deploy/.local/verification.json`，快照写入 `deploy/demo/cluster.json`。快照含采集时刻，不能代表以后任意时刻的状态。
+
+原客户端和管理端的 14 项浏览器验收通过，覆盖双账号登录、视频和文章查询、空消息限制、发送确认、未读与已读、实时回复、撤回同步、刷新恢复、断线重连、管理端登录及两类审核查询；检查过程中没有未捕获的浏览器异常或失败的业务请求。
+
+```powershell
+python deploy/verify_local.py --snapshot
+python deploy/capture_frontends.py
+```
+
+脚本使用本机 Chrome 和 Playwright，通过真实 UI 登录并发送少量演示消息，截图及去除凭据的记录保存在仓库外的 `../部署验证材料/`。新报告使用 05—09、11、12 号截图。01—04 号为此前后端辅助页面的记录，保留其原始采集时间，不代表前端部署后的 Pod 数量。
+
+## 适用范围
+
+这是单机课程实验，全部服务各一个副本；消息服务尚未适配跨副本实时连接路由。单节点、ReadWriteOnce 本地卷和单副本数据库不提供跨机器容灾。
+
+Nacos 和 ES 在独立本地实验中关闭鉴权，服务均为 ClusterIP，本机转发仅绑定回环地址；Nacos 2.2.3 控制台在此模式可能只显示“未开启鉴权”的提示，配置和服务查询由 API 完成。本次未进行生产部署加固，也未验证原项目全部历史业务，例如审核状态变更的完整流程、全部上传流程、评论和推荐。
+
+报告可依据截图与记录陈述上述已验证行为；不能将 Pod Ready 等同于所有业务功能均已通过。

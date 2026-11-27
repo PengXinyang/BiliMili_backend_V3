@@ -14,10 +14,10 @@ public interface UserArticleClient {
     @GetMapping("/user/getUserByName/{account}")
     User getUserByName(@PathVariable("account") String account);
 
-    @GetMapping("/user/{uid}")
+    @GetMapping("/user/public/{uid}")
     UserDTO getUserDTOById(@PathVariable("uid") Integer uid);
 
-    @GetMapping("/user/{uid}")
+    @GetMapping("/user/public/{uid}")
     UserDTO getUserById(@PathVariable("uid") Integer uid);
 
     @PostMapping("/user/handle_comment")

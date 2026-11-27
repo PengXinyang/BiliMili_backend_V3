@@ -47,7 +47,7 @@ public class UserClientController {
     private UserMapper userMapper;
 
     //从userService中寻找提供的服务
-    @GetMapping("/user/{uid}")
+    @GetMapping({"/user/{uid}", "/user/public/{uid}"})
     @SentinelResource(value = "getUserById",blockHandler = "getUserByIdHandler")
     public UserDTO getUserById(@PathVariable("uid") Integer uid){
         return userService.getUserByUId(uid);

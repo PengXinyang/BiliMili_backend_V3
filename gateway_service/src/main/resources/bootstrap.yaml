@@ -28,6 +28,10 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin RETAIN_FIRST
       routes:
+        - id: local-media
+          uri: ${USER_SERVICE_URL:lb://user-service}
+          predicates:
+            - Path=/media/**
         - id: message-websocket
           uri: ${bilimili.message-ws-url}
           predicates:
@@ -48,6 +52,12 @@ spring:
           uri: ${bilimili.message-url}
           predicates:
             - Path=/user/msg-unread/**
+          filters:
+            - StripPrefix=1
+        - id: user-video-interactions
+          uri: ${USER_SERVICE_URL:lb://user-service}
+          predicates:
+            - Path=/user/video/collected-fids,/user/video/play/user
           filters:
             - StripPrefix=1
         - id: user-public-paths
